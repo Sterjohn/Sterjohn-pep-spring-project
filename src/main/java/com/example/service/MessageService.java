@@ -21,10 +21,10 @@ public class MessageService {
 
     public Message createMessage(Message message) {
         if (message.getMessageText() == null || message.getMessageText().isBlank() || message.getMessageText().length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid message text");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         if (!accountRepository.existsById(message.getPostedBy())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User does not exist");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
         return messageRepository.save(message);
     }
@@ -41,23 +41,27 @@ public class MessageService {
         return messageRepository.findById(id).orElse(null);
     }
 
-    public void deleteMessage(int id) {
+    public int deleteMessage(int id) {
         if (!messageRepository.existsById(id)) {
-            return;
+            return 0;
         }
         messageRepository.deleteById(id);
+        return 1;
     }
 
-    public Message updateMessage(int id, Message updated) {
-        Message original = messageRepository.findById(id).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message not found"));
+    public int updateMessage(int id, Message updated) {
+        Message original = messageRepository.findById(id).orElse(null);
+        if (original == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
 
         String newText = updated.getMessageText();
         if (newText == null || newText.isBlank() || newText.length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid message text");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
         }
 
         original.setMessageText(newText);
-        return messageRepository.save(original);
+        messageRepository.save(original);
+        return 1;
     }
 }

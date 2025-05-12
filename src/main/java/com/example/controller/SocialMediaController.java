@@ -5,6 +5,7 @@ import com.example.entity.Message;
 import com.example.service.AccountService;
 import com.example.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,13 +50,17 @@ public class SocialMediaController {
     }
 
     @DeleteMapping("/messages/{message_id}")
-    public void deleteMessage(@PathVariable int message_id) {
-        messageService.deleteMessage(message_id);
+    public ResponseEntity<?> deleteMessage(@PathVariable int message_id) {
+        int result = messageService.deleteMessage(message_id);
+        if (result == 1) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.ok().build();
+        }
     }
 
     @PatchMapping("/messages/{message_id}")
-    public Integer updateMessage(@PathVariable int message_id, @RequestBody Message updatedMsg) {
-        messageService.updateMessage(message_id, updatedMsg);
-        return 1;
+    public int updateMessage(@PathVariable int message_id, @RequestBody Message updatedMsg) {
+        return messageService.updateMessage(message_id, updatedMsg);
     }
 }
