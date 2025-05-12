@@ -54,7 +54,8 @@ public class SocialMediaController {
     }
 
     @PatchMapping("/messages/{message_id}")
-    public Message updateMessage(@PathVariable int message_id, @RequestBody Message updatedMsg) {
-        return messageService.updateMessage(message_id, updatedMsg);
+    public Integer updateMessage(@PathVariable int message_id, @RequestBody Message updatedMsg) {
+        messageService.updateMessage(message_id, updatedMsg);
+        return 1;
     }
 }

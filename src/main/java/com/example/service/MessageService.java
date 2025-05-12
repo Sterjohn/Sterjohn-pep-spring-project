@@ -38,8 +38,7 @@ public class MessageService {
     }
 
     public Message getMessageById(int id) {
-        return messageRepository.findById(id).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Message not found"));
+        return messageRepository.findById(id).orElse(null);
     }
 
     public void deleteMessage(int id) {
