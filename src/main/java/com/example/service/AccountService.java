@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
+
 @Service
 public class AccountService {
 
@@ -19,7 +21,12 @@ public class AccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid account data");
         }
 
-        if (accountRepository.findByUsername(account.getUsername()) != null) {
+        Optional<Account> existing = accountRepository.findAll()
+            .stream()
+            .filter(a -> a.getUsername().equals(account.getUsername()))
+            .findFirst();
+
+        if (existing.isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
 
@@ -27,6 +34,10 @@ public class AccountService {
     }
 
     public Account login(Account account) {
+        if (account.getUsername() == null || account.getPassword() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing credentials");
+        }
+
         Account existing = accountRepository.findByUsernameAndPassword(account.getUsername(), account.getPassword());
         if (existing == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
