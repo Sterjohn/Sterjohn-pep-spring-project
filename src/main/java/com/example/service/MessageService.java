@@ -1,67 +1,123 @@
 package com.example.service;
 
+import com.example.entity.Account;
 import com.example.entity.Message;
 import com.example.repository.AccountRepository;
 import com.example.repository.MessageRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+// Service layer for message-related logic
 @Service
 public class MessageService {
 
-    @Autowired
-    MessageRepository messageRepository;
+    private final MessageRepository messageRepository;
+    private final AccountRepository accountRepository;
 
     @Autowired
-    AccountRepository accountRepository;
-
-    public Message createMessage(Message message) {
-        if (message.getMessageText() == null || message.getMessageText().isBlank() || message.getMessageText().length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-        if (!accountRepository.existsById(message.getPostedBy())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
-        return messageRepository.save(message);
+    public MessageService(
+        MessageRepository messageRepository,
+        AccountRepository   accountRepository
+    ) {
+        this.messageRepository = messageRepository;
+        this.accountRepository = accountRepository;
     }
+
+    // === Create ===
+
+    public ResponseEntity<Message> createMessage(Message message) {
+        // Validate text and postedBy
+        if (
+            message.getMessageText() == null || message.getMessageText().trim().isEmpty() ||
+            message.getMessageText().length() > 255 || message.getPostedBy() == null
+        ) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        // Check that the user exists
+        String username = getUsernameByAccountId(message.getPostedBy());
+        if (username == null || !accountRepository.existsByUsername(username)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        // Save the message
+        Message savedMessage = messageRepository.save(message);
+        return ResponseEntity.ok(savedMessage);
+    }
+
+    // === Read ===
 
     public List<Message> getAllMessages() {
         return messageRepository.findAll();
     }
 
-    public List<Message> getMessagesByUser(int userId) {
-        return messageRepository.findByPostedBy(userId);
+    public ResponseEntity<Message> getMessageById(Integer messageId) {
+        Optional<Message> optionalMessage = messageRepository.findById(messageId);
+        return optionalMessage
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.ok().build());
     }
 
-    public Message getMessageById(int id) {
-        return messageRepository.findById(id).orElse(null);
+    public ResponseEntity<List<Message>> getMessagesByAccountId(Integer accountId) {
+        List<Message> messages = messageRepository.findByPostedBy(accountId);
+        return ResponseEntity.ok(messages);
     }
 
-    public int deleteMessage(int id) {
-        if (!messageRepository.existsById(id)) {
-            return 0;
+    // === Update ===
+
+    public ResponseEntity<Object> updateMessageText(
+        Integer messageId,
+        Message newMessageText
+    ) {
+        Optional<Message> optionalMessage = messageRepository.findById(messageId);
+
+        if (optionalMessage.isEmpty()) {
+            return ResponseEntity
+                   .status(HttpStatus.BAD_REQUEST)
+                   .body("Message not found");
         }
-        messageRepository.deleteById(id);
-        return 1;
+
+        String text = newMessageText.getMessageText();
+        if (text == null || text.trim().isEmpty()) {
+            return ResponseEntity
+                   .status(HttpStatus.BAD_REQUEST)
+                   .body("Message text cannot be empty");
+        }
+
+        if (text.length() > 255) {
+            return ResponseEntity
+                   .status(HttpStatus.BAD_REQUEST)
+                   .body("Message too long: it must have a length of at most 255 characters");
+        }
+
+        Message message = optionalMessage.get();
+        message.setMessageText(text);
+        messageRepository.save(message);
+
+        return ResponseEntity.ok().body("1"); // one row updated
     }
 
-    public int updateMessage(int id, Message updated) {
-        Message original = messageRepository.findById(id).orElse(null);
-        if (original == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-        }
+    // === Delete ===
 
-        String newText = updated.getMessageText();
-        if (newText == null || newText.isBlank() || newText.length() > 255) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    public ResponseEntity<Object> deleteMessageById(Integer messageId) {
+        if (messageRepository.existsById(messageId)) {
+            messageRepository.deleteById(messageId);
+            return ResponseEntity.ok().body("1");
+        } else {
+            return ResponseEntity.ok().build();
         }
+    }
 
-        original.setMessageText(newText);
-        messageRepository.save(original);
-        return 1;
+    // === Helper ===
+
+    public String getUsernameByAccountId(Integer accountId) {
+        Account account = accountRepository.findByAccountId(accountId);
+        return account != null ? account.getUsername() : null;
     }
 }
