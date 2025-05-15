@@ -5,7 +5,7 @@ import com.example.entity.Message;
 import com.example.service.AccountService;
 import com.example.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseEntity; // Added for proper response handling
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,47 +20,71 @@ public class SocialMediaController {
     MessageService messageService;
 
     @PostMapping("/register")
-    public Account register(@RequestBody Account account) {
-        return accountService.register(account);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<Account> register(@RequestBody Account account) {
+        Account registered = accountService.register(account);
+        if (registered == null) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.ok(registered);
     }
 
     @PostMapping("/login")
-    public Account login(@RequestBody Account account) {
-        return accountService.login(account);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<Account> login(@RequestBody Account account) {
+        Account loggedIn = accountService.login(account);
+        if (loggedIn == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(loggedIn);
     }
 
     @PostMapping("/messages")
-    public Message postMessage(@RequestBody Message message) {
-        return messageService.createMessage(message);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<Message> postMessage(@RequestBody Message message) {
+        Message created = messageService.createMessage(message);
+        return ResponseEntity.ok(created);
     }
 
     @GetMapping("/messages")
-    public List<Message> getAllMessages() {
-        return messageService.getAllMessages();
-    }
-
-    @GetMapping("/accounts/{id}/messages")
-    public List<Message> getMessagesByUser(@PathVariable int id) {
-        return messageService.getMessagesByUser(id);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<List<Message>> getAllMessages() {
+        return ResponseEntity.ok(messageService.getAllMessages());
     }
 
     @GetMapping("/messages/{message_id}")
-    public Message getMessageById(@PathVariable int message_id) {
-        return messageService.getMessageById(message_id);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<Message> getMessageById(@PathVariable("message_id") int messageId) {
+        Message found = messageService.getMessageById(messageId);
+        if (found == null) {
+            return ResponseEntity.status(404).build();
+        }
+        return ResponseEntity.ok(found);
     }
 
-    @DeleteMapping("/messages/{message_id}")
-    public ResponseEntity<?> deleteMessage(@PathVariable int message_id) {
-        int result = messageService.deleteMessage(message_id);
-        if (result == 1) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.ok().build();
-        }
+    @GetMapping("/accounts/{user_id}/messages")
+    // Changed return type to ResponseEntity
+    public ResponseEntity<List<Message>> getMessagesByUser(@PathVariable("user_id") int userId) {
+        return ResponseEntity.ok(messageService.getMessagesByUser(userId));
     }
 
     @PatchMapping("/messages/{message_id}")
-    public int updateMessage(@PathVariable int message_id, @RequestBody Message updatedMsg) {
-        return messageService.updateMessage(message_id, updatedMsg);
+    // Changed return type to ResponseEntity
+    public ResponseEntity<Message> updateMessage(@PathVariable("message_id") int messageId, @RequestBody Message message) {
+        Message updated = messageService.updateMessage(messageId, message);
+        if (updated == null) {
+            return ResponseEntity.status(404).build();
+        }
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/messages/{message_id}")
+    // Changed return type to ResponseEntity
+    public ResponseEntity<?> deleteMessage(@PathVariable("message_id") int messageId) {
+        boolean deleted = messageService.deleteMessage(messageId);
+        if (!deleted) {
+            return ResponseEntity.status(404).build();
+        }
+        return ResponseEntity.ok().build();
     }
 }
